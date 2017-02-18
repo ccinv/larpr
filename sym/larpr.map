@@ -1,0 +1,6 @@
+{
+    global:
+        luaopen_larpr;
+        larpr_init;
+    local: *;
+};

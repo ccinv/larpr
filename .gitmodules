@@ -1,0 +1,6 @@
+[submodule "deps/miniz"]
+	path = deps/miniz
+	url = https://github.com/richgel999/miniz
+[submodule "deps/compat-5.3"]
+	path = deps/compat-5.3
+	url = https://github.com/keplerproject/lua-compat-5.3

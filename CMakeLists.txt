@@ -1,0 +1,48 @@
+cmake_minimum_required(VERSION 2.8)
+project(larpr)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake/Modules/")
+
+option(BUILD_SHARED_LIBS "Build as shared library" ON)
+option(BUILD_STATIC_LIBS "Build as static library" OFF)
+option(EMINIZ "Use extern miniz module" OFF)
+
+if (EMINIZ)
+    message(STATUS "Use extern miniz module")
+    add_definitions(-DUSE_EXTERN_MINIZ)
+    set(SRC larpr.c ./deps/compat-5.3/c-api/compat-5.3.c)
+else()
+    set(SRC larpr.c ./deps/miniz/miniz.c ./deps/compat-5.3/c-api/compat-5.3.c)
+endif()
+
+find_package(LuaJIT)
+find_package(Lua)
+if (LUAJIT_FOUND)
+    include_directories(${LUAJIT_INCLUDE_DIR} .)
+    if (WIN32)
+        link_libraries(${LUAJIT_INCLUDE_DIR})
+    endif()
+else()
+    include_directories(${LUA_INCLUDE_DIR} .)
+    find_package(Lua REQUIRED)
+    if (WIN32)
+        link_libraries(${LUA_LIBRARIES})
+    endif()
+endif()
+
+
+if (BUILD_SHARED_LIBS)
+    if(MSVC)
+        set(CMAKE_EXE_LINKER_FLAGS
+            "${CMAKE_EXE_LINKER_FLAGS} /DEF:${PROJECT_SOURCE_DIR}/sym/larpr.def /NODEFAULTLIB")
+    else()
+        link_libraries(-Wl,--retain-symbols-file=${PROJECT_SOURCE_DIR}/sym/larpr.sym)
+        link_libraries(-Wl,--version-script=${PROJECT_SOURCE_DIR}/sym/larpr.map)
+    endif()
+    add_library(larpr SHARED ${SRC})
+endif()
+if (BUILD_STATIC_LIBS)
+    add_library(larpr STATIC ${SRC})
+endif()
+
+set_target_properties(larpr PROPERTIES PREFIX "")

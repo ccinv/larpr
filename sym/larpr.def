@@ -1,0 +1,3 @@
+EXPORTS
+    luaopen_larpr @1
+    larpr_init @1
