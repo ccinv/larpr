@@ -31,6 +31,7 @@
 #define LUA_PATH_MARK "?"
 #define PATH_SEP "/"
 
+#define LARPR_NAME    "larpr"
 #define LAR_FIELD     "_LARS"
 #define CURRENT_FIELD "_CNT"
 #define PPATH_FIELD   "ppath"
@@ -49,7 +50,7 @@
 #ifdef USE_EXTERN_MINIZ
 
 static int Lzip_read_file_panic(lua_State* L) {
-    luaL_error(L,"miniz not found");
+    luaL_error(L, "miniz not found");
     return 0;
 }
 
@@ -152,7 +153,7 @@ static int Lreader_is_file_a_directory(lua_State*  L) {
 
 /* lminiz reader ends */
 
-static const char* zip_get_filename(lua_State* L, int index){
+static const char* zip_get_filename(lua_State* L, int index) {
     lua_pushcfunction(L, Lreader_get_filename);
     lua_pushvalue(L, -2);
     lua_pushinteger(L, index);
@@ -170,7 +171,7 @@ static const char* zip_is_current_directory(lua_State* L, int index) {
         return NULL;
     } else {
         lua_pop(L, 1);
-        return zip_get_filename(L,index);
+        return zip_get_filename(L, index);
     }
 }
 
@@ -378,6 +379,21 @@ int luaopen_larpr(lua_State* L) {
 }
 
 int larpr_init(lua_State* L) {
-    luaL_requiref(L, "larpr", luaopen_larpr, 1);
+    luaL_requiref(L, LARPR_NAME, luaopen_larpr, 1);
+    return 1;
+}
+
+int larpr_require(lua_State* L, const char* module) {
+    luaL_requiref(L, LARPR_NAME, luaopen_larpr, 1);
+    lua_pushcclosure(L, Lrequiref, 1);
+    lua_pushstring(L, module);
+    lua_call(L, 1, 1);
+    return 1;
+}
+
+int larpr_setppath(lua_State* L, const char* path) {
+    luaL_requiref(L, LARPR_NAME, luaopen_larpr, 1);
+    lua_pushstring(L, path);
+    lua_setfield(L, -2, PPATH_FIELD);
     return 1;
 }

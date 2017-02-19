@@ -1,2 +1,4 @@
 luaopen_larpr
 larpr_init
+larpr_require
+larpr_setppath
