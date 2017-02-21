@@ -5,9 +5,6 @@ local M = require "larpr"
 --luacheck: no unused args
 
 describe("larpr Testing", function()
-    it("checks cachelar", function()
-        assert.is_true(M.cachelar("testcases"))
-    end)
     it("checks simple require", function()
         assert.are.equal(require("testcases.big").PI, 3.14)
     end)
@@ -16,5 +13,8 @@ describe("larpr Testing", function()
     end)
     it("checks folder deep require", function()
         assert.are.equal(require("testcases.deps.lucky"), "lucky~!")
+    end)
+    it("checks initializing require", function()
+        assert.are.equal(require("testcases"), 3.14)
     end)
 end)

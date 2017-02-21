@@ -27,9 +27,10 @@
     #define LUA_PPATH_DEFAULT   "./?.lar"
 #endif
 
-#define LUA_PATH_SEP ";"
+#define INIT_FIELD    "init"
+#define LUA_PATH_SEP  ";"
 #define LUA_PATH_MARK "?"
-#define PATH_SEP "/"
+#define PATH_SEP      "/"
 
 #define LARPR_NAME    "larpr"
 #define LAR_FIELD     "_LARS"
@@ -275,7 +276,7 @@ static int Lcachelar(lua_State* L) {
         }
     }
 
-    lua_pushboolean(L, 1);
+    lua_pushboolean(L, 0);
     return 1;
 }
 
@@ -297,51 +298,69 @@ static void requiref_make_namespace(lua_State* L, const char* s1) {
     lua_pushcclosure(L, requiref_make_namespace_func, 3); /* ---+ 1 */
 }
 
-static void requiref_fetch(lua_State* L, const char* m, const char* s) {
+static int requiref_fetch(lua_State* L, const char* m, const char* s) {
     lua_getfield(L, lua_upvalueindex(1), LAR_FIELD);  /* + 1 */
     lua_getfield(L, -1, m);  /* + 2 */
-    lua_getfield(L, -1, s);  /* + 3 */
+    return lua_getfield(L, -1, s) != LUA_TNIL;  /* + 3 */
 }
 
 static const char* requiref_check_cnt(lua_State* L) {
     const char* ret = NULL;
-    if (lua_getfield(L, lua_upvalueindex(1), CURRENT_FIELD) != LUA_TNIL) {  /* + 1 */
+    if (lua_getfield(L, lua_upvalueindex(1), CURRENT_FIELD) != LUA_TNIL)  /* + 1 */
         ret = lua_tostring(L, -1);
-        lua_pop(L, 1);  /* - 0 */
+    return ret;
+}
+
+static int requiref_ensure_cached(lua_State* L) {
+    int ret = 1;
+    lua_getfield(L, lua_upvalueindex(1), LAR_FIELD);  /* + 1 */
+    lua_pushvalue(L, -2);  /* + 2 */
+    if (lua_getfield(L, -2, lua_tostring(L, -1)) == LUA_TNIL) {  /* + 3 */
+        lua_pop(L, 1);  /* - 2 */
+        lua_pushvalue(L, lua_upvalueindex(1));  /* + 3 */
+        lua_pushcclosure(L, Lcachelar, 1);  /* -+ 3 */
+        lua_pushvalue(L, -2);  /* + 4 */
+        lua_call(L, 1, 1);  /* --+ 3 */
+        ret = lua_toboolean(L, -1);
     }
+    lua_pop(L, 3); /* --- 0 */
     return ret;
 }
 
 static int Lrequiref(lua_State* L) {
-    const char* r = luaL_checkstring(L, 1);
+    size_t len;
+    const char* r = luaL_checklstring(L, 1, &len);
     const char* s, *s1, *s2;
+    if ((s = strchr(r, '.')) == NULL) s = r + len;
 
-    if ((s = strchr(r, '.')) == NULL) {
-        if ((s2 = requiref_check_cnt(L)) != NULL) {
-            requiref_fetch(L, s2, r);  /* + 1 */
-            return 1;
-        }
+    if (s == r + len) {
+        if ((s2 = requiref_check_cnt(L)) != NULL) {  /* + 1 */
+            if (requiref_fetch(L, s2, r))  /* + 2 */
+                return 1;
+            lua_pop(L, 2);  /* -- 0 */
+        } else lua_pop(L, 1);  /* - 0 */
+    }
+
+    lua_pushlstring(L, r, s - r);  /* + 1 */
+    if (!requiref_ensure_cached(L)) {
         lua_pushnil(L);
         return 1;
     }
 
-    lua_getfield(L, lua_upvalueindex(1), LAR_FIELD);  /* + 1 */
-    lua_pushlstring(L, r, s - r);  /* + 2 */
+    lua_getfield(L, lua_upvalueindex(1), LAR_FIELD);  /* + 2 */
+    lua_pushvalue(L, -2);  /* + 3 */
+    lua_remove(L, -3);  /* - 2 */
     s1 = lua_tostring(L, -1);
-    if (lua_rawget(L, -2) != LUA_TNIL) {  /* + 3 */
-        lua_getfield(L, -1, s + 1);
-        requiref_make_namespace(L, s1);
-        return 1;
+
+    if (s == r + len) {
+        if (!requiref_fetch(L, s1, INIT_FIELD))
+        { lua_pushnil(L); return 1; }  /* + 3 */
+        requiref_make_namespace(L, s1);  /* + 4 */
+    } else {
+        if (!requiref_fetch(L, s1, s + 1))
+        { lua_pushnil(L); return 1; }  /* + 3 */
+        requiref_make_namespace(L, s1);  /* + 4 */
     }
-
-    lua_pop(L, 1);  /* - 2 */
-    lua_pushvalue(L, lua_upvalueindex(1));  /* + 3 */
-    lua_pushcclosure(L, Lcachelar, 1);  /* -+ 3 */
-    lua_pushstring(L, s1);  /* + 4 */
-    lua_call(L, 1, 0);  /* -- 2 */
-
-    requiref_fetch(L, s1, s + 1);  /* + 3 */
-    requiref_make_namespace(L, s1);
     return 1;
 }
 
