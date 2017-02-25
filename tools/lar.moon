@@ -40,7 +40,9 @@ if err then
 checkext = (src) ->
     ext = select(2, path.splitext(src))
     invild = { ".moonc", ".moon", ".lua", ".luac" }
-    return moon.fold(invild, (a, b) -> a or (ext == b))
+    for v in *invild
+        return true if ext == v
+    return false
 
 buildmoon = (src, dst) ->
     f = io.open(dst, "w")
