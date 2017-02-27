@@ -11,7 +11,6 @@ cli   = require("cliargs")
 path  = require("path")
 fs    = require("path.fs")
 info  = require("path.info")
-moon  = require("moon")
 moons = require("moonscript")
 import join from path
 
