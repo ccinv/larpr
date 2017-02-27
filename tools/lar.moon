@@ -23,7 +23,7 @@ print_version = ->
     print("lua_cliargs: version " .. cli.VERSION)
     os.exit(0)
 
-cli\set_name("lar.lua")
+cli\set_name("lar.moon")
 cli\argument("FOLDER", "the source files' folder")
 cli\argument("OUTPUT", "path to the output lar file")
 cli\flag("-b, --byte", "build source files into byte code")
