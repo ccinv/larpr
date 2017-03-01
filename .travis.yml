@@ -50,7 +50,6 @@ install:
 
 script:
     - moon ./tools/lar.moon -v
-    - moon ./tools/lar.moon -b -s ./spec/testcases testcases.lar
     - busted
 
 notifications:
