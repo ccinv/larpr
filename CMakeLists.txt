@@ -25,9 +25,6 @@ else()
     find_package(Lua REQUIRED)
     include_directories(${LUA_INCLUDE_DIR} .)
 endif()
-if (WIN32)
-    link_libraries(${LUA_LIBRARIES})
-endif()
 
 if (BUILD_SHARED_LIBS)
     add_library(larpr SHARED ${SRC})
@@ -42,7 +39,12 @@ if (BUILD_STATIC_LIBS)
     add_library(larpr STATIC ${SRC})
 endif()
 
+if (WIN32)
+    target_link_libraries(larpr ${LUA_LIBRARIES})
+endif()
+
 set_target_properties(larpr PROPERTIES PREFIX "")
 
 add_executable(container container.c)
 target_link_libraries(container larpr)
+target_link_libraries(container ${LUA_LIBRARIES})
