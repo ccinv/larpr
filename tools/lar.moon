@@ -5,7 +5,6 @@
 -- Required module:
 -- lua-miniz, lua_cliargs, lpath, moonscript
 
-larpr = require("larpr")
 miniz = require("miniz")
 cli   = require("cliargs")
 path  = require("path")
@@ -18,9 +17,7 @@ COPYRIGHT = "Copyright (C) 1994-2017 Yanghe Sun"
 VERSION = "lar compiler 0.1.1b"
 
 print_version = ->
-    print(larpr.VERSION .. " " .. COPYRIGHT)
     print(VERSION .. " " .. COPYRIGHT)
-    print("lua_cliargs: version " .. cli.VERSION)
     os.exit(0)
 
 cli\set_name("lar.moon")

@@ -10,6 +10,7 @@
 #include <lauxlib.h>
 #include "deps/compat-5.3/c-api/compat-5.3.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #ifdef USE_EXTERN_MINIZ
@@ -37,6 +38,11 @@
 #define CURRENT_FIELD "_CNT"
 #define PPATH_FIELD   "ppath"
 #define VERSION_FIELD "VERSION"
+
+#define INFO_OFFEST 17
+#define INFO_ID_LEN 6
+#define INFO_MAGIC "<larpr"
+#define INFO_BLOCK "interal"
 
 #if LUA_VERSION_NUM < 502
     #define LUA_SEARCHERS "loaders"
@@ -68,6 +74,7 @@ static int Lzip_read_file_panic(lua_State* L) {
     }
 
 MINIZ_EXTERN_INIT_BINDING(zip_read_file)
+MINIZ_EXTERN_INIT_BINDING(zip_read_mem)
 #undef MINIZ_EXTERN_INIT_BINDING
 
 #define MINIZ_EXTERN_MEMBER_BINDING(x) \
@@ -95,6 +102,17 @@ static int Lzip_read_file(lua_State* L) {
     mz_zip_archive* za = lua_newuserdata(L, sizeof(mz_zip_archive));
     memset(za, 0, sizeof(mz_zip_archive));
     if (!mz_zip_reader_init_file(za, filename, flags))
+        return 0;
+    return 1;
+}
+
+static int Lzip_read_mem(lua_State* L) {
+    const char* data = (const char*)lua_touserdata(L, 1);
+    int size = lua_tointeger(L, 2);
+    mz_uint32 flags = (mz_uint32)luaL_optinteger(L, 3, 0);
+    mz_zip_archive* za = lua_newuserdata(L, sizeof(mz_zip_archive));
+    memset(za, 0, sizeof(mz_zip_archive));
+    if (!mz_zip_reader_init_mem(za, data, size, flags))
         return 0;
     return 1;
 }
@@ -223,18 +241,17 @@ static void cachelar_add_cache(lua_State* L, const char* name, const char* mod, 
     lua_pop(L, 1);  /* - 0 */
 }
 
-static void cachelar_docache(lua_State* L, const char* name, const char* filename) {
-    int file_cnt, i;
-    const char* mitem = NULL;
-
+static void cachelar_docacheP(lua_State* L, const char* name) {
     lua_getfield(L, lua_upvalueindex(1), LAR_FIELD);  /* + 1 */
     lua_newtable(L);  /* + 2 */
     lua_setfield(L, -2, name);  /* - 1 */
     lua_pop(L, 1);  /* - 0 */
+}
 
-    lua_pushcfunction(L, Lzip_read_file); /* + 1 */
-    lua_pushstring(L, filename);  /* + 2 */
-    lua_call(L, 1, 1);  /* --+ 1 */
+static void cachelar_docacheM(lua_State* L, const char* name) {
+    int file_cnt, i;
+    const char* mitem = NULL;
+
     lua_pushcfunction(L, Lreader_get_num_files);  /* + 2 */
     lua_pushvalue(L, -2);  /* + 3 */
     lua_call(L, 1, 1);  /* --+ 2 */
@@ -255,8 +272,15 @@ static void cachelar_docache(lua_State* L, const char* name, const char* filenam
 
         lua_pop(L, 2);  /* -- 1 */
     }
+}
 
-    lua_pop(L, 1); /* - 0 */
+static void cachelar_docache(lua_State* L, const char* name, const char* filename) {
+    cachelar_docacheP(L, name);
+    lua_pushcfunction(L, Lzip_read_file); /* + 1 */
+    lua_pushstring(L, filename);  /* + 2 */
+    lua_call(L, 1, 1);  /* --+ 1 */
+    cachelar_docacheM(L, name);
+    lua_pop(L, 1);
 }
 
 static int Lcachelar(lua_State* L) {
@@ -364,11 +388,68 @@ static int Lrequiref(lua_State* L) {
     return 1;
 }
 
+static int Linitexe(lua_State* L) {
+    const char* exe = luaL_checkstring(L, 1);
+    const char* mainb, *name;
+    char buf[INFO_OFFEST + 1], *data;
+    FILE* f = fopen(exe, "rb");
+    int l = 0, tl, i, sum, len;
+
+    fseek(f, -INFO_OFFEST, SEEK_END);
+    fread(buf, sizeof(char), INFO_OFFEST, f);
+    if (strncmp(buf, INFO_MAGIC, INFO_ID_LEN) != 0)
+        luaL_error(L, "Invaild exe file");
+    sscanf(buf + INFO_ID_LEN, "%d", &l);
+    fseek(f, -INFO_OFFEST - l, SEEK_END);
+    data = malloc(l * sizeof(char));
+    fread(data, sizeof(char), l, f);
+    luaL_loadbuffer(L, data, l, INFO_BLOCK);
+    free(data);
+    lua_call(L, 0, 2);
+    fseek(f, -INFO_OFFEST - l, SEEK_END);
+
+    mainb = lua_tostring(L, -1);
+    len = luaL_len(L, -2); sum = 0;
+
+    for (i = len; i >= 1; --i) {
+        lua_geti(L, -2, i);
+        lua_getfield(L, -1, "size");
+        sum += lua_tointeger(L, -1);
+        lua_pop(L, 2);
+    }
+
+    fseek(f, -INFO_OFFEST - l - sum, SEEK_END);
+    for (i = 1; i <= len; ++i) {
+        lua_geti(L, -2, i);
+        lua_getfield(L, -1, "id");
+        lua_getfield(L, -2, "size");
+        tl = lua_tointeger(L, -1);
+        data = malloc(tl * sizeof(char));
+        fread(data, sizeof(char), tl, f);
+        name = lua_tostring(L, -2);
+        cachelar_docacheP(L, name);
+        lua_pushcfunction(L, Lzip_read_mem);
+        lua_pushlightuserdata(L, data);
+        lua_pushinteger(L, tl);
+        lua_call(L, 2, 1);
+        cachelar_docacheM(L, name);
+        lua_pop(L, 4);
+    }
+    lua_pushvalue(L, lua_upvalueindex(1));
+    lua_pushcclosure(L, Lrequiref, 1);
+    lua_pushstring(L, mainb);
+    lua_call(L, 1, 1);
+    lua_call(L, 0, 0);
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
 int luaopen_larpr(lua_State* L) {
     luaL_Reg l[] = {
 #define ENTRY(name) { #name, L##name }
         ENTRY(cachelar),
         ENTRY(requiref),
+        ENTRY(initexe),
 #undef  ENTRY
         { NULL, NULL }
     };
@@ -397,12 +478,17 @@ int luaopen_larpr(lua_State* L) {
     return 1;
 }
 
-int larpr_init(lua_State* L) {
+int larpr_init(lua_State* L, const char* exe) {
     luaL_requiref(L, LARPR_NAME, luaopen_larpr, 1);
+    if (exe != NULL) {
+        lua_pushcclosure(L, Linitexe, 1);
+        lua_pushstring(L, exe);
+        lua_call(L, 1, 0);
+    } else lua_pop(L, 1);
     return 1;
 }
 
-int larpr_require(lua_State* L, const char* module) {
+int larpr_requiref(lua_State* L, const char* module) {
     luaL_requiref(L, LARPR_NAME, luaopen_larpr, 1);
     lua_pushcclosure(L, Lrequiref, 1);
     lua_pushstring(L, module);
@@ -414,5 +500,6 @@ int larpr_setppath(lua_State* L, const char* path) {
     luaL_requiref(L, LARPR_NAME, luaopen_larpr, 1);
     lua_pushstring(L, path);
     lua_setfield(L, -2, PPATH_FIELD);
+    lua_pop(L, 1);
     return 1;
 }
