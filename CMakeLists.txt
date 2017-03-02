@@ -46,6 +46,7 @@ set_target_properties(larpr PROPERTIES PREFIX "")
 
 add_executable(container container.c)
 target_link_libraries(container larpr)
+target_link_libraries(container ${LUA_LIBRARIES})
 if (UNIX)
 	target_link_libraries(container dl)
 endif()
