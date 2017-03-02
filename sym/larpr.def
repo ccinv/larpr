@@ -1,5 +1,5 @@
 EXPORTS
     luaopen_larpr @1
     larpr_init @2
-    larpr_require @3
+    larpr_requiref @3
     larpr_setppath @4
