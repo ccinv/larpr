@@ -56,7 +56,7 @@ script:
 
 after_success:
     - luarocks install luacov-coveralls --server=https://luarocks.org/dev
-    - coveralls --dump c.report.json
+    - coveralls -i larpr.c --dump c.report.json
     - luacov-coveralls -j c.report.json -v
 
 notifications:
