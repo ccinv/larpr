@@ -34,6 +34,7 @@ before_install:
     - luarocks install busted
     - luarocks install lpath
     - luarocks install moonscript
+    - luarocks install luacov-coveralls --server=https://luarocks.org/dev
     - luarocks install https://raw.githubusercontent.com/avaicode/lua-miniz/master/lminiz-scm-0.rockspec
     - |
       if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
@@ -45,12 +46,16 @@ before_install:
       fi
 
 install:
-    - cmake . -DEMINIZ=${EMINIZ}
+    - CXXFLAGS="-ftest-coverage -fprofile-arcs" LDFLAGS="--coverage" cmake . -DEMINIZ=${EMINIZ}
     - make larpr -j
 
 script:
     - moon ./tools/lar.moon -v
     - sh ./spec/test.sh
+
+after_success:
+    - coveralls --dump c.report.json
+    - luacov-coveralls -j c.report.json -v
 
 notifications:
     email:

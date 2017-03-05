@@ -1,3 +1,4 @@
+require "luacov"
 require "miniz"
 local M = require "larpr"
 
