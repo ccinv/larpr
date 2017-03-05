@@ -46,11 +46,11 @@ before_install:
 
 install:
     - cmake . -DEMINIZ=${EMINIZ}
-    - make -j
+    - make larpr -j
 
 script:
     - moon ./tools/lar.moon -v
-    - busted
+    - sh ./spec/test.sh
 
 notifications:
     email:
