@@ -34,7 +34,6 @@ before_install:
     - luarocks install busted
     - luarocks install lpath
     - luarocks install moonscript
-    - luarocks install luacov-coveralls --server=https://luarocks.org/dev
     - luarocks install https://raw.githubusercontent.com/avaicode/lua-miniz/master/lminiz-scm-0.rockspec
     - |
       if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
@@ -54,6 +53,7 @@ script:
     - sh ./spec/test.sh
 
 after_success:
+    - luarocks install luacov-coveralls --server=https://luarocks.org/dev
     - coveralls --dump c.report.json
     - luacov-coveralls -j c.report.json -v
 
