@@ -29,6 +29,7 @@ env:
 
 before_install:
     - pip install --user hererocks
+    - pip install --user cpp-coveralls
     - hererocks env --$LUA -rlatest
     - source env/bin/activate
     - luarocks install luacov
