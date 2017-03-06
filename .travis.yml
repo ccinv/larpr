@@ -47,7 +47,7 @@ before_install:
       fi
 
 install:
-    - CXXFLAGS="-ftest-coverage -fprofile-arcs" LDFLAGS="--coverage" cmake . -DEMINIZ=${EMINIZ}
+    - CFLAGS="-ftest-coverage -fprofile-arcs" LDFLAGS="--coverage" cmake . -DEMINIZ=${EMINIZ}
     - make larpr -j VERBOSE=1
 
 script:
