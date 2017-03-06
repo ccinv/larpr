@@ -1,5 +1,5 @@
-require "luacov"
 require "miniz"
+package.loaded["larpr"] = nil
 local M = require "larpr"
 
 --luacheck: no global
