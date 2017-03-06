@@ -444,7 +444,7 @@ static int Linitexe(lua_State* L) {
     return 1;
 }
 
-int luaopen_larpr(lua_State* L) {
+__attribute ((visibility("default"))) int luaopen_larpr(lua_State* L) {
     luaL_Reg l[] = {
 #define ENTRY(name) { #name, L##name }
         ENTRY(cachelar),
@@ -478,7 +478,7 @@ int luaopen_larpr(lua_State* L) {
     return 1;
 }
 
-int larpr_init(lua_State* L, const char* exe) {
+__attribute ((visibility("default"))) int larpr_init(lua_State* L, const char* exe) {
     luaL_requiref(L, LARPR_NAME, luaopen_larpr, 1);
     if (exe != NULL) {
         lua_pushcclosure(L, Linitexe, 1);
@@ -488,7 +488,7 @@ int larpr_init(lua_State* L, const char* exe) {
     return 1;
 }
 
-int larpr_requiref(lua_State* L, const char* module) {
+__attribute ((visibility("default"))) int larpr_requiref(lua_State* L, const char* module) {
     luaL_requiref(L, LARPR_NAME, luaopen_larpr, 1);
     lua_pushcclosure(L, Lrequiref, 1);
     lua_pushstring(L, module);
@@ -496,7 +496,7 @@ int larpr_requiref(lua_State* L, const char* module) {
     return 1;
 }
 
-int larpr_setppath(lua_State* L, const char* path) {
+__attribute ((visibility("default"))) int larpr_setppath(lua_State* L, const char* path) {
     luaL_requiref(L, LARPR_NAME, luaopen_larpr, 1);
     lua_pushstring(L, path);
     lua_setfield(L, -2, PPATH_FIELD);
