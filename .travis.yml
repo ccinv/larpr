@@ -55,9 +55,7 @@ script:
     - sh ./spec/test.sh
 
 after_success:
-    - luarocks install luacov-coveralls --server=https://luarocks.org/dev
-    - coveralls -i larpr.c --dump c.report.json
-    - luacov-coveralls -j c.report.json -v
+    - coveralls -i larpr.c --gcov-options '\-lp'
 
 notifications:
     email:
