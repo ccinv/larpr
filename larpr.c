@@ -379,6 +379,8 @@ static int Lrequiref(lua_State* L) {
     if (s == r + len) {
         if (!requiref_fetch(L, s1, INIT_FIELD))
         { lua_pushnil(L); return 1; }  /* + 3 */
+        if (!requiref_fetch(L, s1, s1))
+        { lua_pushnil(L); return 1; }  /* + 3 */
         requiref_make_namespace(L, s1);  /* + 4 */
     } else {
         if (!requiref_fetch(L, s1, s + 1))
