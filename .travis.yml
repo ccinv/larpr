@@ -36,7 +36,6 @@ before_install:
     - luarocks install busted
     - luarocks install lpath
     - luarocks install moonscript
-    - sudo ln -s env/bin/moon /usr/local/moon
     - luarocks install https://raw.githubusercontent.com/avaicode/lua-miniz/master/lminiz-scm-0.rockspec
     - |
       if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
