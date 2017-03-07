@@ -9,7 +9,7 @@ cli   = require("cliargs")
 path  = require("path")
 fs    = require("path.fs")
 moon  = require("moon")
-load  = load or loadstring
+load  = loadstring or load
 
 import split, splitext from path
 
