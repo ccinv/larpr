@@ -25,7 +25,10 @@ require("test.foo")
 > Cache lar that matches `larpr.ppath` which is similar to lua's `package.path`
 
 - `larpr.requiref([name(string)]) -> function`
-> Return a loaded function by name.If the lar which contains the module is not cached,it will cache it first.
+> Return a loaded function by name.If the lar which contains the module is not cached, it will cache it first.
+
+- `larpr.initexe([exe(path)]) -> boolean`
+> Cache all lars that stored in `exe`, and run main one.
 
 ## License
 
