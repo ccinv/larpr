@@ -52,7 +52,7 @@ install:
 
 script:
     - moon ./tools/lar.moon -v
-    - sh ./spec/test.sh
+    - lua ./spec/dotest.lua
 
 after_success:
     - coveralls -i larpr.c --gcov-options '\-lp'
