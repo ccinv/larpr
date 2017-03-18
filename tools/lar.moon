@@ -30,6 +30,7 @@ return (arg) ->
     cli\flag("--verbose", "the script output will be very verbose")
     args, err = cli\parse(arg)
     cli\cleanup!
+    vprint = (...) -> print(...) if args["verbose"]
 
     if err then
         print(err)
@@ -89,12 +90,10 @@ return (arg) ->
             if t == "file" and checkext(v) then
                 t = os.tmpname()
                 if build(join(cnt, v), t) then
-                    if args['verbose'] then
-                        print("Built " .. join(cnt, v))
+                    vprint("- Built " .. join(cnt, v))
                     v = path.splitext(v) .. ".luac"
                 else
-                    if args['verbose'] then
-                        print("Passing " .. join(cnt, v))
+                    vprint("- Passing " .. join(cnt, v))
                     v = path.splitext(v) .. ".lua"
                 if base == "" then
                     assert(o\add_file(v, t))
@@ -103,10 +102,12 @@ return (arg) ->
                 os.remove(t)
 
     main = () ->
+        vprint(VERSION)
         o = miniz.zip_write_file(args.OUTPUT)
         add(o, args.FOLDER, "")
         o\add_string("_init.lua", makeinit(args.MAIN))
         o\finalize()
+        vprint("- Sucessfully Packed " .. args.OUTPUT)
         o\close()
 
     main!

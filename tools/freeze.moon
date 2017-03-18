@@ -30,6 +30,7 @@ return (arg) ->
     cli\flag("--verbose", "the script output will be very verbose")
     args, err = cli\parse(arg)
     cli\cleanup!
+    vprint = (...) -> print(...) if args["verbose"]
 
     if err then
         print(err)
@@ -64,6 +65,7 @@ return (arg) ->
         return meta, info
 
     main = () ->
+        vprint(VERSION)
         meta, info = create_meta(args.INPUTS, args.MAIN)
         f = io.open(args.OUTPUT, "wb")
         f1 = io.open(args.ORIG, "rb")
@@ -73,6 +75,7 @@ return (arg) ->
             f1 = io.open(v, "rb")
             f\write(f1\read("*a"))
             f1\close()
+            vprint("- Sucessfully freezed " .. v)
 
         f\write(meta)
         f\write(info)

@@ -28,6 +28,9 @@ return (arg) ->
     args, err = cli\parse(arg)
     cli\cleanup!
     args.ALAIS =  args.MAIN  if args.ALAIS == "[NONE]"
+    verbose = ""
+    verbose = "--verbose" if args["verbose"]
+    vprint = (...) -> print(...) if args["verbose"]
 
     if err then
         print(err)
@@ -48,11 +51,13 @@ return (arg) ->
             assert(fs.makedirs(tt))
             assert(fs.copy(v, rrpath(wd, k)))
         tar = args.NAME .. ".lar"
-        lar({ "-s", "-b", wd, args.MAIN, tar })
+        lar({ "-s", "-b", verbose, wd, args.MAIN, tar })
         assert(fs.copy(tar, path.join(cwd, args.ALAIS .. ".lar")))
         fs.removedirs(wd)
 
     main = () ->
+        vprint(VERSION)
+        vprint("- Fetching " .. args.NAME .. " from luarocks")
         cwd = fs.getcwd!
         wd = fs.tmpdir!
         assert(fs.chdir(wd))
@@ -70,7 +75,9 @@ return (arg) ->
             continue if select(2, path.splitext(v)) != ".rockspec"
             rkfile = v
             break
+        vprint("- Selected rockspec " .. rkfile)
         rockspec_move(rkfile, cwd)
+        vprint("- Sucessfully fetched " .. args.MAIN)
         assert(fs.chdir(cwd))
         fs.removedirs(wd)
 
