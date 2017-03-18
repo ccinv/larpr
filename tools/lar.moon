@@ -9,7 +9,6 @@ return (arg) ->
     fs    = require("path.fs")
     cli   = require("cliargs")
     miniz = require("miniz")
-    info  = require("path.info")
     path  = require("path")
     moons = require("moonscript")
     import join from path

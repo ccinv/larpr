@@ -357,13 +357,11 @@ static int Lrequiref(lua_State* L) {
     const char* s, *s1, *s2;
     if ((s = strchr(r, '.')) == NULL) s = r + len;
 
-    if (s == r + len) {
-        if ((s2 = requiref_check_cnt(L)) != NULL) {  /* + 1 */
-            if (requiref_fetch(L, s2, r))  /* + 2 */
-                return 1;
-            lua_pop(L, 2);  /* -- 0 */
-        } else lua_pop(L, 1);  /* - 0 */
-    }
+    if ((s2 = requiref_check_cnt(L)) != NULL) {  /* + 1 */
+        if (requiref_fetch(L, s2, r))  /* + 2 */
+            return 1;
+        lua_pop(L, 2);  /* -- 0 */
+    } else lua_pop(L, 1);  /* - 0 */
 
     lua_pushlstring(L, r, s - r);  /* + 1 */
     if (!requiref_ensure_cached(L)) {
