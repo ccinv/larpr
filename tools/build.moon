@@ -26,15 +26,16 @@ return (arg) ->
     cli\argument("PATH", "path of building script")
     cli\flag("-v, --version", "prints the program's version and exits", print_version)
     cli\flag("--verbose", "the script output will be very verbose")
+    table.remove(arg, 1) if arg[1] == ""
     args, err = cli\parse(arg)
     cli\cleanup!
-    verbose = ""
-    verbose = "--verbose" if args["verbose"]
-    vprint = (...) -> print(...) if args["verbose"]
-
     if err then
         print(err)
         os.exit(0)
+
+    verbose = ""
+    verbose = "--verbose" if args["verbose"]
+    vprint = (...) -> print(...) if args["verbose"]
 
     main = ()->
         vprint(VERSION)

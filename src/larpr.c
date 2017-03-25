@@ -92,6 +92,7 @@ MINIZ_EXTERN_MEMBER_BINDING(extract)
 MINIZ_EXTERN_MEMBER_BINDING(get_num_files)
 MINIZ_EXTERN_MEMBER_BINDING(get_filename)
 MINIZ_EXTERN_MEMBER_BINDING(is_file_a_directory)
+MINIZ_EXTERN_MEMBER_BINDING(reader_close)
 #undef MINIZ_EXTERN_MEMBER_BINDING
 
 #else
@@ -168,6 +169,12 @@ static int Lreader_is_file_a_directory(lua_State*  L) {
     return 1;
 }
 
+static int Lreader_close(lua_State* L) {
+    mz_zip_archive* za = lua_touserdata(L, 1);
+    lua_pushboolean(L, mz_zip_reader_end(za));
+    return 1;
+}
+
 #endif
 
 /* lminiz reader ends */
@@ -180,7 +187,7 @@ static const char* zip_get_filename(lua_State* L, int index) {
     return lua_tostring(L, -1);
 }
 
-static const char* zip_is_current_directory(lua_State* L, int index) {
+static const char* zip_is_directory(lua_State* L, int index) {
     lua_pushcfunction(L, Lreader_is_file_a_directory);
     lua_pushvalue(L, -2);
     lua_pushinteger(L, index);
@@ -192,20 +199,6 @@ static const char* zip_is_current_directory(lua_State* L, int index) {
         lua_pop(L, 1);
         return zip_get_filename(L, index);
     }
-}
-
-static const char* lua_loadstring_reader(lua_State* L, void* t, size_t* size) {
-    const char* code;
-    code = lua_tolstring(L, -1, size);
-    return code;
-}
-
-static void lua_loadstring_binary(lua_State* L) {
-    /*
-    ** lua_loadstring doesn't support binary code beacuse there might be '\0' in it.
-    ** Here defined a function to load binary code.
-    */
-    lua53_load(L, lua_loadstring_reader, NULL, NULL, NULL);
 }
 
 static int cachelar_readable(const char* filename) {
@@ -225,7 +218,7 @@ static const char* cachelar_next(lua_State* L, const char* path, char separator)
     return l;
 }
 
-static void cachelar_add_cache(lua_State* L, const char* name, const char* mod, int index) {
+static void cachelar_add_cache(lua_State* L, const char* name, const char* mod) {
     lua_getfield(L, lua_upvalueindex(1), LAR_FIELD);  /* + 1 */
     lua_getfield(L, -1, name);  /* + 2 */
     lua_remove(L, -2);  /* - 1 */
@@ -249,8 +242,10 @@ static void cachelar_docacheP(lua_State* L, const char* name) {
 }
 
 static void cachelar_docacheM(lua_State* L, const char* name) {
+    size_t len;
     int file_cnt, i;
     const char* mitem = NULL;
+    const char* code = NULL;
 
     lua_pushcfunction(L, Lreader_get_num_files);  /* + 2 */
     lua_pushvalue(L, -2);  /* + 3 */
@@ -259,19 +254,22 @@ static void cachelar_docacheM(lua_State* L, const char* name) {
     lua_pop(L, 1);  /* - 1 */
 
     for (i = 1; i <= file_cnt; ++i ) {
-        if ((mitem = zip_is_current_directory(L, i)) == NULL)
+        if ((mitem = zip_is_directory(L, i)) == NULL)  /* + 2 */
             continue;
 
-        lua_pop(L, 1);  /* - 1 */
-        lua_pushcfunction(L, Lreader_extract);  /* + 2 */
-        lua_pushvalue(L, -2);  /* + 3 */
-        lua_pushinteger(L, i);  /* + 4 */
-        lua_call(L, 2, 1); /* lar:extract(i) ---+ 2 */
-        lua_loadstring_binary(L);  /* + 3 */
-        cachelar_add_cache(L, name, mitem, lua_upvalueindex(1));
+        lua_pushcfunction(L, Lreader_extract);  /* + 3 */
+        lua_pushvalue(L, -3);  /* + 4 */
+        lua_pushinteger(L, i);  /* + 5 */
+        lua_call(L, 2, 1);  /* lar:extract(i) ---+ 3 */
+        code = lua_tolstring(L, -1, &len);
+        luaL_loadbuffer(L, code, len, INFO_BLOCK); /* + 4 */
+        cachelar_add_cache(L, name, mitem);
 
-        lua_pop(L, 2);  /* -- 1 */
+        lua_pop(L, 3);  /* --- 1 */
     }
+    lua_pushcfunction(L, Lreader_close);
+    lua_pushvalue(L, -2);
+    lua_call(L, 1, 0);
 }
 
 static void cachelar_docache(lua_State* L, const char* name, const char* filename) {
@@ -432,6 +430,7 @@ static int Linitexe(lua_State* L) {
         lua_call(L, 2, 1);
         cachelar_docacheM(L, name);
         lua_pop(L, 4);
+        free(data);
     }
     lua_pushvalue(L, lua_upvalueindex(1));
     lua_pushcclosure(L, Lrequiref, 1);

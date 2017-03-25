@@ -28,13 +28,14 @@ return (arg) ->
     cli\flag("-s, --strip", "strip when building byte code")
     cli\flag("-v, --version", "prints the program's version and exits", print_version)
     cli\flag("--verbose", "the script output will be very verbose")
+    table.remove(arg, 1) if arg[1] == ""
     args, err = cli\parse(arg)
-    cli\cleanup!
-    vprint = (...) -> print(...) if args["verbose"]
-
     if err then
         print(err)
         os.exit(0)
+
+    cli\cleanup!
+    vprint = (...) -> print(...) if args["verbose"]
 
     checkext = (src) ->
         ext = select(2, path.splitext(src))
