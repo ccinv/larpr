@@ -51,8 +51,7 @@ install:
     - make -j VERBOSE=1
 
 script:
-    - moon ./tools/lar.moon -v
-    - lua ./spec/dotest.lua
+    - busted
 
 after_success:
     - coveralls -i larpr.c --gcov-options '\-lp'
