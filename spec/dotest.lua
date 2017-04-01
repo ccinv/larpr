@@ -14,9 +14,9 @@ end
 
 if info.platform == "linux" then
     local cmd = ""
-    cmd = cmd .. [[cd tools&&./larcli lar -b -s ../spec/testcases init ../testcases.lar&&cd ..]]
+    cmd = cmd .. [[cd tools&&./larcli.moon lar -b -s ../spec/testcases init ../testcases.lar&&cd ..&&]]
     cmd = cmd .. [[touch raw&&]]
-    cmd = cmd .. [[cd tools&&./larcli freeze ../raw testcases ../container ../testcases.lar&&cd ..]]
+    cmd = cmd .. [[cd tools&&./larcli.moon freeze ../raw testcases ../container ../testcases.lar&&cd ..&&]]
     cmd = cmd .. [[busted]]
     os.execute(cmd)
 end
