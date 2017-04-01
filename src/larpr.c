@@ -13,36 +13,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef USE_EXTERN_MINIZ
-    #define EXTERN_MINIZ_NAME "miniz"
-#else
+#ifndef USE_EXTERN_MINIZ
     #define MINIZ_HEADER_FILE_ONLY
     #include "deps/miniz/miniz.c"
 #endif
-
-#define LARPR_VERSION "larpr 1.0rc"
-
-#ifdef _WIN32
-    #define LUA_PPATH_DEFAULT   ".\\?.lar"
-#else
-    #define LUA_PPATH_DEFAULT   "./?.lar"
-#endif
-
-#define INIT_FIELD    "_init"
-#define LUA_PATH_SEP  ";"
-#define LUA_PATH_MARK "?"
-#define PATH_SEP      "/"
-
-#define LARPR_NAME    "larpr"
-#define LAR_FIELD     "_LARS"
-#define CURRENT_FIELD "_CNT"
-#define PPATH_FIELD   "ppath"
-#define VERSION_FIELD "VERSION"
-
-#define INFO_OFFEST 17
-#define INFO_ID_LEN 6
-#define INFO_MAGIC "<larpr"
-#define INFO_BLOCK "interal"
+#include "config.h"
 
 #if LUA_VERSION_NUM < 502
     #define LUA_SEARCHERS "loaders"
@@ -263,6 +238,8 @@ static void cachelar_docacheM(lua_State* L, const char* name) {
         lua_call(L, 2, 1);  /* lar:extract(i) ---+ 3 */
         code = lua_tolstring(L, -1, &len);
         luaL_loadbuffer(L, code, len, INFO_BLOCK); /* + 4 */
+        if (lua_type(L, -1) != LUA_TFUNCTION)
+            luaL_error(L, "failed caching %s: %s", name, lua_tostring(L, -1));
         cachelar_add_cache(L, name, mitem);
 
         lua_pop(L, 3);  /* --- 1 */
