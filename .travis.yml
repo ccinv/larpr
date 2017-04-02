@@ -51,7 +51,7 @@ install:
     - make -j VERBOSE=1
 
 script:
-    - busted
+    - lua ./spec/dotest.lua
 
 after_success:
     - coveralls -i larpr.c --gcov-options '\-lp'
