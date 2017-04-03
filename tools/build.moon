@@ -41,19 +41,25 @@ return (arg) ->
         vprint(VERSION)
         script = dofile(args.PATH)
         main      = script.main
-        srcdir    = path.abs(script.srcdir)
-        output    = path.abs(script.output)
+        ext       = script.ext
         modules   = script.modules
+        output    = path.abs(script.output)
         container = path.abs(script.container)
+        for v in *modules
+            v.srcdir = path.abs(v.srcdir)
+
         cwd = fs.getcwd!
         wd = fs.tmpdir!
+
         assert(fs.chdir(wd))
         lars = {}
         for v in *modules
+            lar({ verbose, "-s", "-b", v.srcdir, v.main, v.name .. ".lar" })
+            table.insert(lars, v.name .. ".lar")
+
+        for v in *ext
             fetch({ verbose, v.name, v.main, v.alais })
             table.insert(lars, v.alais .. ".lar")
-        lar({ "-s", "-b", verbose, srcdir, main, "main.lar" })
-        table.insert(lars, "main.lar")
-        freeze({ verbose, container, "main", output, table.unpack(lars) })
+        freeze({ verbose, container, main, output, table.unpack(lars) })
 
     main!
