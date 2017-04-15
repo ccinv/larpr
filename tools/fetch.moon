@@ -51,7 +51,7 @@ return (arg) ->
             tt = select(1, path.split(t))
             assert(fs.makedirs(tt))
             assert(fs.copy(v, rrpath(wd, k)))
-        tar = args.NAME .. ".lar"
+        tar = args.ALAIS .. ".lar"
         lar({ "-s", "-b", verbose, wd, args.MAIN, tar })
         assert(fs.copy(tar, path.join(cwd, args.ALAIS .. ".lar")))
         fs.removedirs(wd)

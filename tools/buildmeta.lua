@@ -7,7 +7,7 @@ end
 
 local ot
 if require("path.info").platform == "windows" then
-    ot = "larpr1.exe"
+    ot = "larpr.exe"
 else
     ot = "larpr"
 end
