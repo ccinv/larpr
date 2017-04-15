@@ -42,6 +42,7 @@ return (arg) ->
         script = dofile(args.PATH)
         main      = script.main
         ext       = script.ext
+        cache     = path.abs(path.splitext(args.PATH) .. ".cache")
         modules   = script.modules
         output    = path.abs(script.output)
         container = path.abs(script.container)
@@ -57,9 +58,19 @@ return (arg) ->
             lar({ verbose, "-s", "-b", v.srcdir, v.main, v.name .. ".lar" })
             table.insert(lars, v.name .. ".lar")
 
-        for v in *ext
-            fetch({ verbose, v.name, v.main, v.alais })
-            table.insert(lars, v.alais .. ".lar")
+        if fs.exists(cache)
+            for v in *dofile(cache)
+                table.insert(lars, v)
+        else
+            f = io.open(cache, "w")
+            f\write("return {")
+            for v in *ext
+                fetch({ verbose, v.name, v.main, v.alais })
+                table.insert(lars, v.alais .. ".lar")
+                f\write('[[' .. path.abs(v.alais .. ".lar") .. ']],')
+            f\write("}")
+            f\close!
+
         freeze({ verbose, container, main, output, table.unpack(lars) })
 
     main!
