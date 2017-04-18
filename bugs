@@ -1,0 +1,6 @@
+-- Extern miniz works not well with containers #1.
+-- Containers can't be built with default configure building of lua, which must link to a dynamic library #2.
+-- Lpeg pattern error occurs on Windows with MinGW32 #3.
+-- Code refactor is needed #999.
+2017-4-18 19:15:08
+
