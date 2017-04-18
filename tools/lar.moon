@@ -28,6 +28,7 @@ return (arg) ->
     cli\flag("-s, --strip", "strip when building byte code")
     cli\flag("-v, --version", "prints the program's version and exits", print_version)
     cli\flag("--verbose", "the script output will be very verbose")
+    cli\flag("--nverbose", "the script output will be not very verbose")
     table.remove(arg, 1) if arg[1] == ""
     args, err = cli\parse(arg)
     if err then

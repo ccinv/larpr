@@ -28,6 +28,7 @@ return (arg) ->
     cli\splat("INPUTS", "lar files to package", "", 100)
     cli\flag("-v, --version", "prints the program's version and exits", print_version)
     cli\flag("--verbose", "the script output will be very verbose")
+    cli\flag("--nverbose", "the script output will be not very verbose")
     table.remove(arg, 1) if arg[1] == ""
     args, err = cli\parse(arg)
     if err then
@@ -45,7 +46,7 @@ return (arg) ->
 
     dumps = (tbl, main) ->
         tbcode = "{"
-        for _, v in ipairs(tbl)
+        for v in *tbl
             subcode = "{"
             subcode ..= string.format("size=%d,", v.size)
             subcode ..= string.format("id=\"%s\"", v.id)
@@ -69,6 +70,7 @@ return (arg) ->
         vprint(VERSION)
         meta, info = create_meta(args.INPUTS, args.MAIN)
         f = io.open(args.OUTPUT, "wb")
+        assert(fs.exists(args.ORIG), "Orig file not found")
         f1 = io.open(args.ORIG, "rb")
         f\write(f1\read("*a"))
 

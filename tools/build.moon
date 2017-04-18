@@ -11,6 +11,7 @@ return (arg) ->
     freeze = require("freeze")
 
     fs    = require("path.fs")
+    info  = require("path.info")
     cli   = require("cliargs")
     path  = require("path")
     unpack = unpack or table.unpack
@@ -26,6 +27,7 @@ return (arg) ->
     cli\argument("PATH", "path of building script")
     cli\flag("-v, --version", "prints the program's version and exits", print_version)
     cli\flag("--verbose", "the script output will be very verbose")
+    cli\flag("--nverbose", "the script output will be not very verbose")
     table.remove(arg, 1) if arg[1] == ""
     args, err = cli\parse(arg)
     cli\cleanup!
@@ -33,9 +35,14 @@ return (arg) ->
         print(err)
         os.exit(0)
 
-    verbose = ""
+    verbose = "--nverbose"
     verbose = "--verbose" if args["verbose"]
     vprint = (...) -> print(...) if args["verbose"]
+
+    winner = (p) ->
+        return p if info.platform != "windows"
+        return p .. ".exe" if select(2, path.splitext(p)) != ".exe"
+        return p
 
     main = ()->
         vprint(VERSION)
@@ -46,6 +53,8 @@ return (arg) ->
         modules   = script.modules
         output    = path.abs(script.output)
         container = path.abs(script.container)
+        output    = winner(output)
+        container = winner(container)
         for v in *modules
             v.srcdir = path.abs(v.srcdir)
 
