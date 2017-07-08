@@ -361,69 +361,11 @@ static int Lrequiref(lua_State* L) {
     return 1;
 }
 
-static int Linitexe(lua_State* L) {
-    const char* exe = luaL_checkstring(L, 1);
-    const char* mainb, *name;
-    char buf[INFO_OFFEST + 1], *data;
-    FILE* f = fopen(exe, "rb");
-    int l = 0, tl, i, sum, len;
-
-    fseek(f, -INFO_OFFEST, SEEK_END);
-    fread(buf, sizeof(char), INFO_OFFEST, f);
-    if (strncmp(buf, INFO_MAGIC, INFO_ID_LEN) != 0)
-        luaL_error(L, "Invaild exe file");
-    sscanf(buf + INFO_ID_LEN, "%d", &l);
-    fseek(f, -INFO_OFFEST - l, SEEK_END);
-    data = malloc(l * sizeof(char));
-    fread(data, sizeof(char), l, f);
-    luaL_loadbuffer(L, data, l, INFO_BLOCK);
-    free(data);
-    lua_call(L, 0, 2);
-    fseek(f, -INFO_OFFEST - l, SEEK_END);
-
-    mainb = lua_tostring(L, -1);
-    len = luaL_len(L, -2); sum = 0;
-
-    for (i = len; i >= 1; --i) {
-        lua_geti(L, -2, i);
-        lua_getfield(L, -1, "size");
-        sum += lua_tointeger(L, -1);
-        lua_pop(L, 2);
-    }
-
-    fseek(f, -INFO_OFFEST - l - sum, SEEK_END);
-    for (i = 1; i <= len; ++i) {
-        lua_geti(L, -2, i);
-        lua_getfield(L, -1, "id");
-        lua_getfield(L, -2, "size");
-        tl = lua_tointeger(L, -1);
-        data = malloc(tl * sizeof(char));
-        fread(data, sizeof(char), tl, f);
-        name = lua_tostring(L, -2);
-        cachelar_docacheP(L, name);
-        lua_pushcfunction(L, Lzip_read_mem);
-        lua_pushlightuserdata(L, data);
-        lua_pushinteger(L, tl);
-        lua_call(L, 2, 1);
-        cachelar_docacheM(L, name);
-        lua_pop(L, 4);
-        free(data);
-    }
-    lua_pushvalue(L, lua_upvalueindex(1));
-    lua_pushcclosure(L, Lrequiref, 1);
-    lua_pushstring(L, mainb);
-    lua_call(L, 1, 1);
-    lua_call(L, 0, 0);
-    lua_pushboolean(L, 1);
-    return 1;
-}
-
 __attribute ((visibility("default"))) int luaopen_larpr(lua_State* L) {
     luaL_Reg l[] = {
 #define ENTRY(name) { #name, L##name }
         ENTRY(cachelar),
         ENTRY(requiref),
-        ENTRY(initexe),
 #undef  ENTRY
         { NULL, NULL }
     };
@@ -449,16 +391,6 @@ __attribute ((visibility("default"))) int luaopen_larpr(lua_State* L) {
     lua_seti(L, -2, luaL_len(L, -2) + 1);  /* - 3 */
     lua_pop(L, 2);  /* -- 1 */
 
-    return 1;
-}
-
-__attribute ((visibility("default"))) int larpr_init(lua_State* L, const char* exe) {
-    luaL_requiref(L, LARPR_NAME, luaopen_larpr, 1);
-    if (exe != NULL) {
-        lua_pushcclosure(L, Linitexe, 1);
-        lua_pushstring(L, exe);
-        lua_call(L, 1, 0);
-    } else lua_pop(L, 1);
     return 1;
 }
 

@@ -26,10 +26,6 @@ require("test.foo")
 
 - `larpr.requiref([name(string)]) -> function`
 > Return a loaded function by name.If the lar which contains the module is not cached, it will cache it first.
-
-- `larpr.initexe([exe(path)]) -> boolean`
-> Cache all lars that stored in `exe`, and run main one.
-
 ## License
 
 MIT License

@@ -1,5 +1,8 @@
 require "miniz"
 package.loaded["larpr"] = nil
+local info = require("path.info")
+if info.platform == "windows" then package.cpath = package.cpath .. ";../builds/?.dll" end
+if info.platform == "linux" then package.cpath = package.cpath .. ";../builds/?.so" end
 local M = require "larpr"
 
 --luacheck: no global
