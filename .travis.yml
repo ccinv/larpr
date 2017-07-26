@@ -14,8 +14,8 @@ env:
           EMINIZ="OFF"
         - LUA="luajit 2.0"
           EMINIZ="OFF"
-        - LUA="luajit 2.1"
-          EMINIZ="OFF"
+        # - LUA="luajit 2.1"
+        #   EMINIZ="OFF"
         - LUA="lua 5.1"
           EMINIZ="ON"
         - LUA="lua 5.2"
@@ -24,11 +24,8 @@ env:
           EMINIZ="ON"
         - LUA="luajit 2.0"
           EMINIZ="ON"
-        - LUA="luajit 2.1"
-          EMINIZ="ON"
-    allow_failures:
-        - LUA="luajit 2.1"
-          EMINIZ="ON"
+        # - LUA="luajit 2.1"
+        #   EMINIZ="ON"
 
 before_install:
     - pip install --user hererocks
