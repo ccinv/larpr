@@ -1,12 +1,13 @@
+--luacheck: no global
+--luacheck: no unused args
+
 require "miniz"
 package.loaded["larpr"] = nil
 local info = require("path.info")
-if info.platform == "windows" then package.cpath = package.cpath .. ";../builds/?.dll" end
-if info.platform == "linux" then package.cpath = package.cpath .. ";../builds/?.so" end
+if info.platform == "windows" then package.cpath = package.cpath .. ";./builds/?.dll" end
+if info.platform == "linux" then package.cpath = package.cpath .. ";./builds/?.so" end
 local M = require "larpr"
-
---luacheck: no global
---luacheck: no unused args
+M.ppath = M.ppath .. ";./spec/?.lar"
 
 describe("larpr Testing", function()
     it("checks simple require", function()
