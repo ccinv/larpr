@@ -1,5 +1,6 @@
 # larpr - Lua ARchive support
-[![Build Status](https://travis-ci.org/avaicode/larpr.svg?branch=master)](https://travis-ci.org/avaicode/larpr)
+
+**Not in maintain anymore**
 
 larpr is a jar-like archive support,which allows you to pack multi lua source or bytecode into one zipped file.
 
