@@ -1,7 +1,7 @@
 --luacheck: no global
 --luacheck: no unused args
 
-require "miniz"
+pcall(require, "miniz")
 package.loaded["larpr"] = nil
 local info = require("path.info")
 if info.platform == "windows" then package.cpath = package.cpath .. ";./builds/?.dll" end

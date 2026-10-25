@@ -19,7 +19,7 @@ make
 
 - `-DBUILD_SHARED_LIBS=ON` (default `ON`): Build shared library (`larpr.so` / `larpr.dll`).
 - `-DBUILD_STATIC_LIBS=OFF` (default `OFF`): Build static library.
-- `-DEMINIZ=ON` (default `OFF`): Use external [lua-miniz](https://github.com/avaicode/lua-miniz) instead of the bundled `miniz`.
+- `-DEMINIZ=ON` (default `OFF`): Use external [lua-miniz](https://github.com/starwing/lua-miniz) instead of the bundled `miniz`.
 
 ## Archive Structure (`.lar`)
 
