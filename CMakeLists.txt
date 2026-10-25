@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8...3.10)
 project(larpr C)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake/Modules/")
@@ -10,14 +10,19 @@ option(EMINIZ "Use extern miniz module" OFF)
 if (EMINIZ)
     message(STATUS "Use extern miniz module")
     add_definitions(-DUSE_EXTERN_MINIZ)
-    set(SRC_LARPR ./src/larpr.c ./deps/compat-5.3/c-api/compat-5.3.c)
+    set(SRC_LARPR ./src/larpr.c)
 else()
-    set(SRC_LARPR ./src/larpr.c ./deps/miniz/miniz.c ./deps/compat-5.3/c-api/compat-5.3.c)
+    set(SRC_LARPR ./src/larpr.c ./deps/miniz/miniz.c)
 endif()
 
 if (BUILD_SHARED_LIBS)
     add_library(larpr SHARED ${SRC_LARPR})
     set_target_properties(larpr PROPERTIES C_VISIBILITY_PRESET hidden)
+    if (APPLE)
+        set_target_properties(larpr PROPERTIES
+            SUFFIX ".so"
+            LINK_FLAGS "-undefined dynamic_lookup")
+    endif()
 endif()
 if (BUILD_STATIC_LIBS)
     add_library(larpr STATIC ${SRC_LARPR})

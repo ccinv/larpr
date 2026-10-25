@@ -32,8 +32,11 @@
 #ifdef USE_EXTERN_MINIZ
 
 static int Lzip_read_file_panic(lua_State* L) {
-    luaL_error(L, "miniz not found");
-    return 0;
+    lua_getglobal(L, "require");
+    lua_pushvalue(L, 1);
+    if (lua_pcall(L, 1, 1, 0) != LUA_OK)
+        luaL_error(L, "miniz not found");
+    return 1;
 }
 
 #define MINIZ_EXTERN_INIT_BINDING(x) \
@@ -49,7 +52,6 @@ static int Lzip_read_file_panic(lua_State* L) {
     }
 
 MINIZ_EXTERN_INIT_BINDING(zip_read_file)
-MINIZ_EXTERN_INIT_BINDING(zip_read_mem)
 #undef MINIZ_EXTERN_INIT_BINDING
 
 #define MINIZ_EXTERN_MEMBER_BINDING(x) \
@@ -78,17 +80,6 @@ static int Lzip_read_file(lua_State* L) {
     mz_zip_archive* za = lua_newuserdata(L, sizeof(mz_zip_archive));
     memset(za, 0, sizeof(mz_zip_archive));
     if (!mz_zip_reader_init_file(za, filename, flags))
-        return 0;
-    return 1;
-}
-
-static int Lzip_read_mem(lua_State* L) {
-    const char* data = (const char*)lua_touserdata(L, 1);
-    int size = lua_tointeger(L, 2);
-    mz_uint32 flags = (mz_uint32)luaL_optinteger(L, 3, 0);
-    mz_zip_archive* za = lua_newuserdata(L, sizeof(mz_zip_archive));
-    memset(za, 0, sizeof(mz_zip_archive));
-    if (!mz_zip_reader_init_mem(za, data, size, flags))
         return 0;
     return 1;
 }
@@ -194,18 +185,22 @@ static const char* cachelar_next(lua_State* L, const char* path, char separator)
 }
 
 static void cachelar_add_cache(lua_State* L, const char* name, const char* mod) {
+    const char* slash = strrchr(mod, *PATH_SEP);
+    const char* dot = strrchr(slash ? slash + 1 : mod, '.');
+
     lua_getfield(L, lua_upvalueindex(1), LAR_FIELD);  /* + 1 */
     lua_getfield(L, -1, name);  /* + 2 */
     lua_remove(L, -2);  /* - 1 */
 
-    luaL_gsub(L, mod, PATH_SEP, ".");  /* + 2 */
-    const char* s = lua_tostring(L, -1);
-    lua_pushlstring(L, s, strrchr(s, '.') - s);  /* + 3 */
-    s = lua_tostring(L, -1);
-    lua_pop(L, 2);  /* -- 1 */
+    if (dot != NULL)
+        lua_pushlstring(L, mod, dot - mod);  /* + 2 */
+    else
+        lua_pushstring(L, mod);  /* + 2 */
+    luaL_gsub(L, lua_tostring(L, -1), PATH_SEP, ".");  /* + 3 */
+    lua_remove(L, -2);  /* - 2 */
 
-    lua_pushvalue(L, -2);  /* + 2 */
-    lua_setfield(L, -2, s);  /* - 1 */
+    lua_pushvalue(L, -3);  /* + 3 */
+    lua_settable(L, -3);  /* - 1 */
     lua_pop(L, 1);  /* - 0 */
 }
 
@@ -237,9 +232,12 @@ static void cachelar_docacheM(lua_State* L, const char* name) {
         lua_pushinteger(L, i);  /* + 5 */
         lua_call(L, 2, 1);  /* lar:extract(i) ---+ 3 */
         code = lua_tolstring(L, -1, &len);
-        luaL_loadbuffer(L, code, len, INFO_BLOCK); /* + 4 */
-        if (lua_type(L, -1) != LUA_TFUNCTION)
+        if (luaL_loadbuffer(L, code, len, INFO_BLOCK) != LUA_OK) { /* + 4 */
+            lua_pushcfunction(L, Lreader_close);
+            lua_pushvalue(L, -5);
+            lua_call(L, 1, 0);
             luaL_error(L, "failed caching %s: %s", name, lua_tostring(L, -1));
+        }
         cachelar_add_cache(L, name, mitem);
 
         lua_pop(L, 3);  /* --- 1 */
@@ -249,44 +247,59 @@ static void cachelar_docacheM(lua_State* L, const char* name) {
     lua_call(L, 1, 0);
 }
 
-static void cachelar_docache(lua_State* L, const char* name, const char* filename) {
-    cachelar_docacheP(L, name);
+static int cachelar_docache(lua_State* L, const char* name, const char* filename) {
     lua_pushcfunction(L, Lzip_read_file); /* + 1 */
     lua_pushstring(L, filename);  /* + 2 */
     lua_call(L, 1, 1);  /* --+ 1 */
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 1);
+        return 0;
+    }
+    cachelar_docacheP(L, name);
     cachelar_docacheM(L, name);
     lua_pop(L, 1);
+    return 1;
 }
 
 static int Lcachelar(lua_State* L) {
     const char* name = luaL_checkstring(L, 1);
     lua_getfield(L, lua_upvalueindex(1), PPATH_FIELD);  /* + 1 */
     const char* path = lua_tostring(L, -1);
-    lua_pop(L, 1);  /* - 0 */
+    if (path == NULL) {
+        lua_pop(L, 1);
+        lua_pushboolean(L, 0);
+        return 1;
+    }
 
-    while ((path = cachelar_next(L, path, *LUA_PATH_SEP))) {  /* + 1 */
+    while ((path = cachelar_next(L, path, *LUA_PATH_SEP))) {  /* + 2 */
         const char* filename = luaL_gsub(L, lua_tostring(L, -1),
-                                         LUA_PATH_MARK, name);  /* + 2 */
-        lua_pop(L, 2);  /* -- 0 */
-        if (cachelar_readable(filename)) {
-            cachelar_docache(L, name, filename);
+                                         LUA_PATH_MARK, name);  /* + 3 */
+        if (cachelar_readable(filename) && cachelar_docache(L, name, filename)) {
+            lua_pop(L, 3);  /* --- 0 */
             lua_pushboolean(L, 1);
             return 1;
         }
+        lua_pop(L, 2);  /* -- 1 */
     }
 
+    lua_pop(L, 1);  /* - 0 */
     lua_pushboolean(L, 0);
     return 1;
 }
 
 static int requiref_make_namespace_func(lua_State* L) {
     int ori = lua_gettop(L);
-    lua_pushvalue(L, lua_upvalueindex(2));  /* + 1 */
-    lua_setfield(L, lua_upvalueindex(1), CURRENT_FIELD);  /* - 0 */
-    lua_pushvalue(L, lua_upvalueindex(3));  /* + 1 */
-    lua_call(L, 0, LUA_MULTRET);  /* -[+] n */
-    lua_pushnil(L);  /* + */
+    int status;
+    lua_getfield(L, lua_upvalueindex(1), CURRENT_FIELD);  /* + 1 */
+    lua_pushvalue(L, lua_upvalueindex(2));  /* + 2 */
+    lua_setfield(L, lua_upvalueindex(1), CURRENT_FIELD);  /* - 1 */
+    lua_pushvalue(L, lua_upvalueindex(3));  /* + 2 */
+    status = lua_pcall(L, 0, LUA_MULTRET, 0);  /* -[+] n */
+    lua_pushvalue(L, ori + 1);  /* + */
     lua_setfield(L, lua_upvalueindex(1), CURRENT_FIELD);  /* - */
+    lua_remove(L, ori + 1);
+    if (status != LUA_OK)
+        lua_error(L);
     return lua_gettop(L) - ori;  /* return what origin function returns */
 }
 
@@ -295,12 +308,20 @@ static void requiref_make_namespace(lua_State* L, const char* s1) {
     lua_pushstring(L, s1); /* + 2 */
     lua_pushvalue(L, -3); /* + 3 */
     lua_pushcclosure(L, requiref_make_namespace_func, 3); /* ---+ 1 */
+    lua_remove(L, -2); /* - 0 */
 }
 
 static int requiref_fetch(lua_State* L, const char* m, const char* s) {
     lua_getfield(L, lua_upvalueindex(1), LAR_FIELD);  /* + 1 */
-    lua_getfield(L, -1, m);  /* + 2 */
-    return lua_getfield(L, -1, s) != LUA_TNIL;  /* + 3 */
+    if (lua_getfield(L, -1, m) != LUA_TTABLE) {  /* + 2 */
+        lua_pop(L, 2);
+        lua_pushnil(L);  /* + 1 */
+        return 0;
+    }
+    lua_getfield(L, -1, s);  /* + 3 */
+    lua_remove(L, -2);  /* - 2 */
+    lua_remove(L, -2);  /* - 1 */
+    return !lua_isnil(L, -1);
 }
 
 static const char* requiref_check_cnt(lua_State* L) {
@@ -333,8 +354,10 @@ static int Lrequiref(lua_State* L) {
     if ((s = strchr(r, '.')) == NULL) s = r + len;
 
     if ((s2 = requiref_check_cnt(L)) != NULL) {  /* + 1 */
-        if (requiref_fetch(L, s2, r))  /* + 2 */
+        if (requiref_fetch(L, s2, r)) {  /* + 2 */
+            requiref_make_namespace(L, s2);
             return 1;
+        }
         lua_pop(L, 2);  /* -- 0 */
     } else lua_pop(L, 1);  /* - 0 */
 
@@ -344,19 +367,16 @@ static int Lrequiref(lua_State* L) {
         return 1;
     }
 
-    lua_getfield(L, lua_upvalueindex(1), LAR_FIELD);  /* + 2 */
-    lua_pushvalue(L, -2);  /* + 3 */
-    lua_remove(L, -3);  /* - 2 */
     s1 = lua_tostring(L, -1);
 
     if (s == r + len) {
         if (!requiref_fetch(L, s1, INIT_FIELD))
-        { lua_pushnil(L); return 1; }  /* + 3 */
-        requiref_make_namespace(L, s1);  /* + 4 */
+        { lua_pushnil(L); return 1; }  /* + 2 */
+        requiref_make_namespace(L, s1);
     } else {
         if (!requiref_fetch(L, s1, s + 1))
-        { lua_pushnil(L); return 1; }  /* + 3 */
-        requiref_make_namespace(L, s1);  /* + 4 */
+        { lua_pushnil(L); return 1; }  /* + 2 */
+        requiref_make_namespace(L, s1);
     }
     return 1;
 }

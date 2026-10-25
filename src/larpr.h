@@ -11,7 +11,6 @@ extern "C" {
 #endif
 
 int luaopen_larpr(lua_State* L);
-int larpr_init(lua_State* L, const char* exe);
 int larpr_requiref(lua_State* L, const char* module);
 int larpr_setppath(lua_State* L, const char* path);
 
